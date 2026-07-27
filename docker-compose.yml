@@ -1,0 +1,282 @@
+services:
+  eureka-service:
+    build:
+      context: .
+      dockerfile: eureka-service/Dockerfile
+    container_name: ticket-eureka-service
+    ports:
+      - "8761:8761"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sS http://localhost:8761/ > /dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  inventory-db:
+    image: postgres:15-alpine
+    container_name: ticket-inventory-postgres
+    depends_on:
+      eureka-service:
+        condition: service_healthy
+    environment:
+      POSTGRES_DB: inventory_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: rootpassword
+    ports:
+      - "5432:5432"
+    volumes:
+      - inventory_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d inventory_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  report-db:
+    image: postgres:15-alpine
+    container_name: report-postgres
+    depends_on:
+      eureka-service:
+        condition: service_healthy
+    environment:
+      POSTGRES_DB: report_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: rootpassword
+    ports:
+      - "5433:5432"
+    volumes:
+      - report_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d report_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  wallet-db:
+    image: postgres:15-alpine
+    container_name: wallet-postgres
+    depends_on:
+      eureka-service:
+        condition: service_healthy
+    environment:
+      POSTGRES_DB: wallet_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: rootpassword
+    ports:
+      - "5435:5432"
+    volumes:
+      - wallet_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d wallet_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  booking-db:
+    image: postgres:15-alpine
+    container_name: booking-postgres
+    depends_on:
+      eureka-service:
+        condition: service_healthy
+    environment:
+      POSTGRES_DB: booking_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: rootpassword
+    ports:
+      - "5434:5432"
+    volumes:
+      - booking_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d booking_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: ticket-rabbitmq
+    depends_on:
+      eureka-service:
+        condition: service_healthy
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  inventory-service:
+    build:
+      context: .
+      dockerfile: inventory-service/Dockerfile
+    container_name: ticket-inventory-service
+    depends_on:
+      eureka-service:
+        condition: service_healthy
+      inventory-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://inventory-db:5432/inventory_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: rootpassword
+      SPRING_RABBITMQ_HOST: rabbitmq
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-service:8761/eureka/
+    ports:
+      - "8081:8081"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -sS http://localhost:8081/actuator/health | grep UP || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+
+  report-service:
+    build:
+      context: .
+      dockerfile: report-service/Dockerfile
+    container_name: ticket-report-service
+    depends_on:
+      eureka-service:
+        condition: service_healthy
+      report-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://report-db:5432/report_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: rootpassword
+      SPRING_RABBITMQ_HOST: rabbitmq
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-service:8761/eureka/
+    ports:
+      - "8083:8083"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -sS http://localhost:8083/actuator/health | grep UP || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  wallet-service:
+    build:
+      context: .
+      dockerfile: wallet-service/Dockerfile
+    container_name: ticket-wallet-service
+    depends_on:
+      eureka-service:
+        condition: service_healthy
+      wallet-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://wallet-db:5432/wallet_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: rootpassword
+      SPRING_RABBITMQ_HOST: rabbitmq
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-service:8761/eureka/
+    ports:
+      - "8084:8084"
+      - "9090:9090"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -sS http://localhost:8084/actuator/health | grep UP || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+
+  booking-service:
+    build:
+      context: .
+      dockerfile: booking-service/Dockerfile
+    container_name: ticket-booking-service
+    depends_on:
+      eureka-service:
+        condition: service_healthy
+      booking-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      # wallet-service:
+      #   condition: service_healthy
+      # report-service:
+      #   condition: service_healthy
+      # inventory-service:
+      #   condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://booking-db:5432/booking_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: rootpassword
+      SPRING_RABBITMQ_HOST: rabbitmq
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-service:8761/eureka/
+
+      INVENTORY_SERVICE_URL: http://INVENTORY-SERVICE/ws
+      REPORT_SERVICE_URL: http://REPORT-SERVICE
+      GRPC_CLIENT_WALLET_SERVICE_ADDRESS: discovery:///wallet-service
+      GRPC_CLIENT_WALLET_SERVICE_NEGOTIATION_TYPE: plaintext
+    ports:
+      - "8082:8082"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -sS http://localhost:8082/actuator/health | grep UP || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+
+  frontend-service:
+    build:
+      context: .
+      dockerfile: frontend-service/Dockerfile
+    container_name: frontend-service
+    restart: always
+    ports:
+      - "3000:4173"
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      booking-service:
+        condition: service_healthy
+      wallet-service:
+        condition: service_healthy
+      report-service:
+        condition: service_healthy
+      inventory-service:
+        condition: service_healthy
+
+volumes:
+  inventory_postgres_data:
+  report_postgres_data:
+  booking_postgres_data:
+  wallet_postgres_data:
+  rabbitmq_data:

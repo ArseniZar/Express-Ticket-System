@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:tns="http://example.com/inventoryservice/soap"
+           targetNamespace="http://example.com/inventoryservice/soap"
+           elementFormDefault="qualified">
+
+    <xs:complexType name="eventSoapDto">
+        <xs:sequence>
+            <xs:element name="id" type="xs:long"/>
+            <xs:element name="title" type="xs:string"/>
+            <xs:element name="price" type="xs:double"/>
+            <xs:element name="availableSeats" type="xs:int"/>
+            <xs:element name="startTime" type="xs:dateTime" minOccurs="0"/>
+            <xs:element name="endTime" type="xs:dateTime" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:element name="getEventsRequest">
+        <xs:complexType><xs:sequence/></xs:complexType>
+    </xs:element>
+    <xs:element name="getEventsResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="events" type="tns:eventSoapDto" maxOccurs="unbounded"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="getEventByIdRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="id" type="xs:long"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="getEventByIdResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="event" type="tns:eventSoapDto"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="createEventRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="title" type="xs:string"/>
+                <xs:element name="price" type="xs:double"/>
+                <xs:element name="availableSeats" type="xs:int"/>
+                <xs:element name="startTime" type="xs:dateTime"/>
+                <xs:element name="endTime" type="xs:dateTime"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="createEventResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="event" type="tns:eventSoapDto"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="updateEventRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="event" type="tns:eventSoapDto"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="updateEventResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="success" type="xs:boolean"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="deleteEventRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="id" type="xs:long"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="deleteEventResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="success" type="xs:boolean"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+</xs:schema>
